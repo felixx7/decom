@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Topic Decomposition & Branching App</title>
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- App Container -->
+  <div class="app-container">
+    
+    <!-- 1. SIDEBAR: Topic List -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i data-lucide="git-branch" class="logo-icon"></i>
+          <span>Topic Brancher</span>
+        </div>
+        <button id="new-topic-btn" class="btn btn-primary" title="Create New Topic">
+          <i data-lucide="plus"></i>
+          <span>Topik Baru</span>
+        </button>
+      </div>
+      
+      <div class="sidebar-search">
+        <i data-lucide="search" class="search-icon"></i>
+        <input type="text" id="search-topics" placeholder="Cari topik...">
+      </div>
+
+      <div class="sidebar-content">
+        <ul id="topics-list" class="topics-list">
+          <!-- Dynamically populated -->
+          <li class="loading-item">Loading topics...</li>
+        </ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="db-status" id="db-status">
+          <span class="status-dot status-offline"></span>
+          <span class="status-text">Checking connection...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 2. MAIN WORKSPACE: Hierarchical Tree View -->
+    <main class="main-workspace" id="main-workspace">
+      <!-- Welcome Screen (When no topic is selected) -->
+      <div class="welcome-screen" id="welcome-screen">
+        <div class="welcome-card">
+          <div class="welcome-icon-container">
+            <i data-lucide="git-fork" class="welcome-icon"></i>
+          </div>
+          <h1>Dekomposisi Topik</h1>
+          <p>Pecah topik kompleks menjadi cabang-cabang hierarkis secara mudah. Buat topik baru atau pilih topik yang sudah ada di sidebar untuk memulai.</p>
+          <button id="welcome-new-topic-btn" class="btn btn-primary btn-large">
+            <i data-lucide="plus"></i>
+            <span>Buat Topik Pertama Anda</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Topic Workspace -->
+      <div class="topic-workspace hidden" id="active-workspace">
+        <header class="workspace-header">
+          <div class="topic-title-container">
+            <h1 id="active-topic-title" contenteditable="true" title="Klik untuk mengedit judul topik">Judul Topik</h1>
+            <button id="edit-topic-title-btn" class="btn-icon" title="Edit judul topik">
+              <i data-lucide="edit-3"></i>
+            </button>
+          </div>
+          <div class="workspace-actions">
+            <button id="add-root-branch-btn" class="btn btn-secondary">
+              <i data-lucide="plus-circle"></i>
+              <span>Tambah Cabang Utama</span>
+            </button>
+            <button id="delete-topic-btn" class="btn btn-danger" title="Hapus Topik ini beserta semua cabangnya">
+              <i data-lucide="trash-2"></i>
+              <span>Hapus Topik</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Dynamic Tree Content -->
+        <div class="tree-canvas" id="tree-canvas">
+          <!-- Renders recursive branches -->
+          <div class="tree-root" id="tree-root"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 3. DETAILS INSPECTOR PANEL: Edit Node & Long Description -->
+    <aside class="details-panel" id="details-panel">
+      <div class="panel-header">
+        <h2>Edit Cabang</h2>
+        <button id="close-panel-btn" class="btn-icon close-btn" title="Close Panel">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="panel-body">
+        <input type="hidden" id="edit-node-id">
+        
+        <div class="form-group">
+          <label for="edit-node-title">Judul Cabang</label>
+          <input type="text" id="edit-node-title" placeholder="Nama cabang...">
+        </div>
+
+        <div class="form-group form-group-grow">
+          <div class="label-row">
+            <label for="edit-node-description">Deskripsi Panjang / Catatan</label>
+            <span class="editor-help-badge" title="Teks mendukung paragraf panjang untuk mendokumentasikan detail topik ini">Long-form</span>
+          </div>
+          <textarea id="edit-node-description" placeholder="Tuliskan deskripsi lengkap, detail, atau rencana panjang untuk cabang topik ini..."></textarea>
+        </div>
+      </div>
+
+      <div class="panel-footer">
+        <span class="save-status" id="save-status">
+          <i data-lucide="check" class="status-icon"></i> Autosaved
+        </span>
+        <div class="footer-buttons">
+          <button id="delete-node-btn" class="btn btn-danger-outline btn-sm" title="Hapus cabang ini dan sub-cabangnya">
+            <i data-lucide="trash-2"></i> Hapus Cabang
+          </button>
+          <button id="save-node-btn" class="btn btn-primary" title="Terapkan dan simpan semua perubahan">
+            Simpan Perubahan
+          </button>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Modal Dialog for creating/renaming topics -->
+  <div class="modal-overlay hidden" id="topic-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Topik Baru</h3>
+        <button class="btn-icon modal-close-btn" id="modal-close-btn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modal-topic-id">
+        <div class="form-group">
+          <label for="modal-topic-title">Nama Topik</label>
+          <input type="text" id="modal-topic-title" placeholder="Contoh: Rencana Belajar Pemrograman Web">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel-btn">Batal</button>
+        <button class="btn btn-primary" id="modal-submit-btn">Buat Topik</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dialog for creating branches (supports bulk/nested input) -->
+  <div class="modal-overlay hidden" id="branch-modal">
+    <div class="modal-card branch-modal-card">
+      <div class="modal-header">
+        <h3 id="branch-modal-title">Tambah Cabang Baru</h3>
+        <button class="btn-icon modal-close-btn" id="branch-modal-close-btn"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="branch-modal-parent-id">
+        <div class="parent-indicator" id="branch-modal-parent-indicator" style="margin-bottom: 1rem;">
+          <span>Menambahkan ke: </span><strong>Cabang Utama</strong>
+        </div>
+        <div class="form-group">
+          <label for="branch-modal-input">Nama Cabang / Outline Cabang</label>
+          <textarea id="branch-modal-input" placeholder="Tuliskan nama cabang di sini.&#10;Untuk membuat banyak cabang sekaligus, ketik satu per baris.&#10;Gunakan spasi/tab untuk membuat sub-cabang, contoh:&#10;Cabang Utama A&#10;  Sub-cabang A1&#10;  Sub-cabang A2&#10;Cabang Utama B" style="height: 150px;"></textarea>
+          <span class="input-help">Tips: Setiap baris baru akan menjadi cabang terpisah. Gunakan indentasi spasi/tab untuk membuat sub-cabang bertingkat.</span>
+        </div>
+        
+        <!-- Live Preview area -->
+        <div class="preview-container" id="branch-modal-preview-container">
+          <div class="preview-header">Pratinjau Struktur Cabang (<span id="branch-preview-count">0</span> cabang):</div>
+          <div class="preview-tree" id="branch-preview-tree">
+            <span class="preview-empty">Mulai mengetik untuk melihat pratinjau struktur...</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="branch-modal-cancel-btn">Batal</button>
+        <button class="btn btn-primary" id="branch-modal-submit-btn">Tambah Cabang</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript File -->
+  <script src="app.js"></script>
+</body>
+</html>
