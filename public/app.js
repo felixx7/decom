@@ -49,6 +49,7 @@ const el = {
   branchPreviewTree: document.getElementById('branch-preview-tree')
 };
 
+//
 // API Base URL (defaults to relative path for production, localhost for dev)
 const API_URL = '';
 
